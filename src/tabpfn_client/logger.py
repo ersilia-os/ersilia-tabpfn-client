@@ -1,0 +1,42 @@
+from loguru import logger as _loguru
+from rich.console import Console
+from rich.logging import RichHandler
+
+
+class Logger:
+  def __init__(self):
+    _loguru.remove()
+    self.console = Console()
+    self._sink_id = None
+    self.set_verbosity(True)
+
+  def set_verbosity(self, verbose):
+    if self._sink_id is not None:
+      import contextlib
+
+      with contextlib.suppress(Exception):
+        _loguru.remove(self._sink_id)
+      self._sink_id = None
+    if verbose:
+      handler = RichHandler(
+        rich_tracebacks=True, markup=True, show_path=False, log_time_format="%H:%M:%S"
+      )
+      self._sink_id = _loguru.add(handler, format="{message}", colorize=True)
+
+  def debug(self, msg):
+    _loguru.debug(msg)
+
+  def info(self, msg):
+    _loguru.info(msg)
+
+  def warning(self, msg):
+    _loguru.warning(msg)
+
+  def error(self, msg):
+    _loguru.error(msg)
+
+  def success(self, msg):
+    _loguru.success(msg)
+
+
+logger = Logger()

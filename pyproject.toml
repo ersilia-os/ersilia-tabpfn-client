@@ -3,30 +3,45 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "my-package"
+name = "ersilia-tabpfn-client"
 version = "0.1.0"
-description = "A short description of my package"
+description = "Remote TabPFN model serving and inference client"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-  {name="Your Name", email="you@ersilia.io"}
+  {name="Abel Legese", email="abel@ersilia.io"}
 ]
 requires-python = ">=3.10"
 
 dependencies = [
-  "numpy>=1.21",
+  "numpy",
+  "pandas",
+  "h5py",
+  "msgpack",
+  "msgpack-numpy",
+  "httpx",
+  "loguru",
+  "rich",
+  "python-dotenv",
 ]
 
 [project.optional-dependencies]
+server = [
+  "fastapi",
+  "uvicorn[standard]",
+  "tabpfn",
+  "torch",
+]
 dev = [
   "pytest",
-  "black",
-  "flake8",
+  "ruff",
 ]
+
+[project.scripts]
+tabpfn = "tabpfn_client.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

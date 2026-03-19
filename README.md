@@ -391,27 +391,101 @@ print(f"probabilities shape: {probabilities.shape}")
 tabpfn_client.unload()
 ```
 
-## Typical remote workflow
+## Remote deployment
 
-On the GPU server:
+The client and server are designed to run on different machines. The server runs on a GPU machine, and the client runs anywhere with network access to the server.
+
+### On the remote GPU machine
+
+Get the machine's IP address:
+
+```bash
+hostname -I
+# example: 10.0.1.50
+```
+
+Install and start the server:
 
 ```bash
 git clone https://github.com/ersilia-os/ersilia-tabpfn-client.git
 cd ersilia-tabpfn-client
-conda activate pmnet
-pip install -e .[server]
-tabpfn serve --host 0.0.0.0 --port 8197 --api-key my-api-key --model-version v2
+pip install -e ".[server]"
+tabpfn serve --host 0.0.0.0 --port 8197 --api-key my-secret-key
 ```
 
-On the client machine:
+`--host 0.0.0.0` binds to all interfaces so the server accepts connections from other machines. Without it, the server would only listen on `127.0.0.1` (localhost).
+
+### On the local client machine
+
+Install the client (no GPU or server dependencies needed):
 
 ```bash
 git clone https://github.com/ersilia-os/ersilia-tabpfn-client.git
 cd ersilia-tabpfn-client
 pip install -e .
-tabpfn configure --secret my-api-key --url http://my-gpu-host:8197
+```
+
+Point the client at the remote server using its IP:
+
+```bash
+tabpfn configure --secret my-secret-key --url http://10.0.1.50:8197
+```
+
+You can also use a hostname, a Tailscale IP (`100.x.x.x`), or any address that is reachable from the client:
+
+```bash
+tabpfn configure --secret my-secret-key --url http://100.68.60.88:8197
+```
+
+If you forget `http://`, it is added automatically.
+
+Check connectivity:
+
+```bash
 tabpfn status
-tabpfn predict -i input.csv -o output.csv
+```
+
+Run a prediction:
+
+```bash
+tabpfn predict -i data/test_input.csv -o output.csv
+```
+
+### Verifying connectivity with curl
+
+You can test the server without the client using curl. The `/status` endpoint does not require authentication:
+
+```bash
+curl http://10.0.1.50:8197/status
+```
+
+The `/predict` and `/unload` endpoints require the `X-API-Key` header:
+
+```bash
+curl -X POST http://10.0.1.50:8197/unload -H "X-API-Key: my-secret-key"
+```
+
+### Authentication
+
+- `/status` is open (no API key required) so it can be used for health checks and monitoring
+- `/predict` and `/unload` require the `X-API-Key` header to match the key the server was started with
+- if the server was started without `--api-key`, all endpoints are open
+
+### Network requirements
+
+The client needs TCP access to the server on the configured port (default `8197`). Make sure:
+- the port is open in any firewall on the server machine
+- there is a route between the client and server (same LAN, VPN, Tailscale, etc.)
+- no NAT or proxy is blocking the connection
+
+### Python API with remote server
+
+```python
+import tabpfn_client
+
+tabpfn_client.configure(secret="my-secret-key", url="http://10.0.1.50:8197")
+tabpfn_client.status()
+predictions, probabilities = tabpfn_client.predict(X, y, task="classification")
 ```
 
 ## Notes

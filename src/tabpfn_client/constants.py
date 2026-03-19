@@ -17,6 +17,15 @@ STATUS_ENDPOINT = "/status"
 UNLOAD_ENDPOINT = "/unload"
 
 
+def _normalize_url(url):
+  if not url:
+    return url
+  url = url.strip().strip("\"'").rstrip("/")
+  if url and not url.startswith("http://") and not url.startswith("https://"):
+    url = f"http://{url}"
+  return url
+
+
 def get_api_key():
   key = os.environ.get(ENV_API_KEY)
   if key:
@@ -32,10 +41,10 @@ def get_api_key():
 def get_server_url():
   url = os.environ.get(ENV_SERVER_URL)
   if url:
-    return url.rstrip("/")
+    return _normalize_url(url)
   if ENV_FILE.exists():
     for line in ENV_FILE.read_text().strip().splitlines():
       line = line.strip()
       if line.startswith(f"{ENV_SERVER_URL}="):
-        return line.split("=", 1)[1].strip().strip("\"'").rstrip("/")
+        return _normalize_url(line.split("=", 1)[1])
   return None

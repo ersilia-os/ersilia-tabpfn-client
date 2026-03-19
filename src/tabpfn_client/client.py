@@ -17,6 +17,16 @@ from tabpfn_client.validate import validate_input
 CONTENT_TYPE = "application/x-msgpack"
 TIMEOUT = 300.0
 
+_TRANSPORT_ERRORS = (
+  httpx.ConnectError,
+  httpx.ConnectTimeout,
+  httpx.ReadTimeout,
+  httpx.WriteTimeout,
+  httpx.PoolTimeout,
+  httpx.NetworkError,
+  httpx.TimeoutException,
+)
+
 
 def _build_headers():
   key = get_api_key()
@@ -35,6 +45,13 @@ def _base_url():
   return url
 
 
+def _check_response(r, url):
+  if r.status_code == 401:
+    raise AuthError("authentication failed, check your api key")
+  if r.status_code != 200:
+    raise ServerError(f"server returned {r.status_code}: {r.text}")
+
+
 def _post_predict(url, headers, body):
   try:
     r = httpx.post(
@@ -43,12 +60,9 @@ def _post_predict(url, headers, body):
       headers=headers,
       timeout=TIMEOUT,
     )
-  except httpx.ConnectError as e:
-    raise ServerError(f"cannot connect to {url}: {e}")
-  if r.status_code == 401:
-    raise AuthError("authentication failed, check your api key")
-  if r.status_code != 200:
-    raise ServerError(f"server returned {r.status_code}: {r.text}")
+  except _TRANSPORT_ERRORS as e:
+    raise ServerError(f"cannot reach server at {url}: {type(e).__name__}: {e}")
+  _check_response(r, url)
   return decode_response(r.content)
 
 
@@ -57,12 +71,9 @@ def check_status():
   headers = _build_headers()
   try:
     r = httpx.get(f"{url}{STATUS_ENDPOINT}", headers=headers, timeout=10.0)
-  except httpx.ConnectError as e:
-    raise ServerError(f"cannot connect to {url}: {e}")
-  if r.status_code == 401:
-    raise AuthError("authentication failed, check your api key")
-  if r.status_code != 200:
-    raise ServerError(f"server returned {r.status_code}: {r.text}")
+  except _TRANSPORT_ERRORS as e:
+    raise ServerError(f"cannot reach server at {url}: {type(e).__name__}: {e}")
+  _check_response(r, url)
   return r.json()
 
 
@@ -113,10 +124,7 @@ def unload_models():
   headers = _build_headers()
   try:
     r = httpx.post(f"{url}{UNLOAD_ENDPOINT}", headers=headers, timeout=10.0)
-  except httpx.ConnectError as e:
-    raise ServerError(f"cannot connect to {url}: {e}")
-  if r.status_code == 401:
-    raise AuthError("authentication failed, check your api key")
-  if r.status_code != 200:
-    raise ServerError(f"server returned {r.status_code}: {r.text}")
+  except _TRANSPORT_ERRORS as e:
+    raise ServerError(f"cannot reach server at {url}: {type(e).__name__}: {e}")
+  _check_response(r, url)
   return r.json()

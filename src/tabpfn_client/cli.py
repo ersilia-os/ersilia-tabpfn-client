@@ -6,9 +6,13 @@ from tabpfn_client.logger import logger
 
 def cmd_status(args):
   from tabpfn_client.client import check_status
+  from tabpfn_client.constants import get_server_url
 
+  url = get_server_url()
+  logger.info(f"connecting to {url}")
   info = check_status()
   logger.success("server is reachable")
+  logger.info(f"server url    : {url}")
   logger.info(f"gpu available : {info.get('gpu_available')}")
   logger.info(f"gpu name      : {info.get('gpu_name', 'n/a')}")
   logger.info(f"models loaded : {info.get('models_loaded', [])}")
@@ -65,6 +69,10 @@ def cmd_configure(args):
   content = "\n".join(f"{k}={v}" for k, v in lines.items()) + "\n"
   ENV_FILE.write_text(content)
   logger.success(f"config written to {ENV_FILE}")
+  if ENV_SERVER_URL in lines:
+    logger.info(f"server url : {lines[ENV_SERVER_URL]}")
+  if ENV_API_KEY in lines:
+    logger.info(f"api key    : {lines[ENV_API_KEY][:8]}...")
 
 
 def cmd_unload(args):

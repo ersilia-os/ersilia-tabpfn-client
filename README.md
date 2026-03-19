@@ -1,4 +1,4 @@
-# ersilia-tabpfn-client
+# Ersilia TabPFN client
 
 Remote TabPFN inference client and server for running predictions on a GPU machine.
 
